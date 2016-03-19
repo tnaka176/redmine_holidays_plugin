@@ -22,6 +22,8 @@ Redmine::Plugin.register :redmine_holidays_plugin do
   version '0.0.1'
   url 'https://github.com/taktos/redmine_holidays_plugin'
 
+  require_dependency 'date'
+
   settings :default => {
     'region' => :jp
   }, :partial => 'settings/holidays_settings'
