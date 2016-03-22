@@ -276,6 +276,7 @@
     height = g_height + header_height - 1
     top = (show_day_num ? 55 : 37)
     wday = @gantt.date_from.cwday
+	day_num = @gantt.date_from
   %>
   <% (@gantt.date_to - @gantt.date_from + 1).to_i.times do %>
     <%
@@ -294,6 +295,7 @@
     <% end %>
     <%
       left = left + width + 1
+	  day_num = day_num + 1
       wday = wday + 1
       wday = 1 if wday > 7
     %>
