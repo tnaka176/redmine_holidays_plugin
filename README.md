@@ -16,7 +16,7 @@ Installations
 1. Clone into the plugins directory
 
         $ cd REDMINE_ROOT/plugins
-        $ git clone https://github.com/taktos/redmine_holidays_plugin.git
+        $ git clone https://github.com/kyanagi873/redmine_holidays_plugin.git
 
 2. Install gems
 
