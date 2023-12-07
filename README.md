@@ -7,7 +7,7 @@ This is a redmine plugin that displays holiday in the calendar.
 Prerequisites
 -------------
 
-* Redmine 3.4
+* Redmine 5.0
 
 
 Installations
@@ -16,7 +16,7 @@ Installations
 1. Clone into the plugins directory
 
         $ cd REDMINE_ROOT/plugins
-        $ git clone https://github.com/kyanagi873/redmine_holidays_plugin.git
+        $ git clone https://github.com/tnaka176/redmine_holidays_plugin.git
 
 2. Install gems
 
