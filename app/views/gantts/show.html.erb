@@ -1,10 +1,6 @@
 <%= stylesheet_link_tag 'holidays_style', :plugin => 'redmine_holidays_plugin' %>
 <% @gantt.view = self %>
 <div class="contextual">
-<% if !@query.new_record? && @query.editable_by?(User.current) %>
-  <%= link_to l(:button_edit), edit_query_path(@query, :gantt => 1), :class => 'icon icon-edit' %>
-  <%= delete_link query_path(@query, :gantt => 1) %>
-<% end %>
 </div>
 
 <h2><%= @query.new_record? ? l(:label_gantt) : @query.name %></h2>
@@ -19,16 +15,30 @@
 <div id="query_form_with_buttons" class="hide-when-print">
 <div id="query_form_content">
   <fieldset id="filters" class="collapsible <%= @query.new_record? ? "" : "collapsed" %>">
-    <legend onclick="toggleFieldset(this);"><%= l(:label_filter_plural) %></legend>
+    <legend onclick="toggleFieldset(this);" class="icon icon-<%= @query.new_record? ? "expanded" : "collapsed" %>"><%= l(:label_filter_plural) %></legend>
     <div style="<%= @query.new_record? ? "" : "display: none;" %>">
       <%= render :partial => 'queries/filters', :locals => {:query => @query} %>
     </div>
   </fieldset>
 
   <fieldset id="options" class="collapsible collapsed">
-    <legend onclick="toggleFieldset(this);"><%= l(:label_options) %></legend>
+    <legend onclick="toggleFieldset(this);" class="icon icon-collapsed"><%= l(:label_options) %></legend>
     <div style="display: none;">
       <table>
+        <tr>
+          <td>
+            <fieldset>
+              <legend>
+                <%= l(:field_column_names) %>
+              </legend>
+              <label for="draw_selected_columns">
+                <%= check_box 'query', 'draw_selected_columns', :id => 'draw_selected_columns', 'data-enables' => 'span.query-columns select, span.query-columns input' %>
+                  <%= l(:label_display) %>
+              </label>
+              <%= render_query_columns_selection(@query) %>
+            </fieldset>
+          </td>
+        </tr>
         <tr>
           <td>
             <fieldset>
@@ -61,12 +71,17 @@
 </div>
 
 <p class="contextual">
-  <%= gantt_zoom_link(@gantt, :in) %>
-  <%= gantt_zoom_link(@gantt, :out) %>
+  <span>
+    <%= gantt_zoom_link(@gantt, :in) %>
+    <%= gantt_zoom_link(@gantt, :out) %>
+  </span>
+  <span>
+    <%= link_to_previous_month(@gantt.year_from, @gantt.month_from, :accesskey => accesskey(:previous)) %> | <%= link_to_next_month(@gantt.year_from, @gantt.month_from, :accesskey => accesskey(:next)) %>
+  </span>
 </p>
 
 <p class="buttons">
-  <%= number_field_tag 'months', @gantt.months, :min => 1, :max => 24, :autocomplete => false %>
+  <%= number_field_tag 'months', @gantt.months, :min => 1, :max => Setting.gantt_months_limit.to_i, :autocomplete => false %>
   <%= l(:label_months_from) %>
   <%= select_month(@gantt.month_from, :prefix => "month", :discard_type => true) %>
   <%= select_year(@gantt.year_from, :prefix => "year", :discard_type => true) %>
@@ -77,10 +92,14 @@
   <%= link_to l(:button_clear), { :project_id => @project, :set_filter => 1 },
               :class => 'icon icon-reload' %>
   <% if @query.new_record? && User.current.allowed_to?(:save_queries, @project, :global => true) %>
-    <%= link_to_function l(:button_save),
+    <%= link_to_function l(:button_save_object, object_name: l(:label_query).downcase),
                          "$('#query_form').attr('action', '#{ @project ? new_project_query_path(@project) : new_query_path }').submit();",
                          :class => 'icon icon-save' %>
   <% end %>
+<% if !@query.new_record? && @query.editable_by?(User.current) %>
+  <%= link_to l(:button_edit_object, object_name: l(:label_query).downcase), edit_query_path(@query, :gantt => 1), :class => 'icon icon-edit' %>
+  <%= delete_link query_path(@query, :gantt => 1), {}, l(:button_delete_object, object_name: l(:label_query).downcase) %>
+<% end %>
 </p>
 </div>
 <% end %>
@@ -126,39 +145,66 @@
   <p class="warning"><%= l(:notice_gantt_chart_truncated, :max => @gantt.max_rows) %></p>
 <% end %>
 
-<table style="width:100%; border:0; border-collapse: collapse;">
+<table class='gantt-table'>
 <tr>
-<td style="width:<%= subject_width %>px; padding:0px;" class="gantt_subjects_column">
+<td style="width:<%= @query.draw_selected_columns ? subject_width + 1 : subject_width + 2 %>px;" class="gantt_subjects_column">
   <%
     style  = ""
     style += "position:relative;"
     style += "height: #{t_height + 24}px;"
     style += "width: #{subject_width + 1}px;"
   %>
-  <%= content_tag(:div, :style => style, :class => "gantt_subjects_container") do %>
+  <%= content_tag(:div, :style => style, :class => "gantt_subjects_container #{'draw_selected_columns' if @query.draw_selected_columns}") do %>
     <%
       style  = ""
-      style += "width: #{subject_width}px;"
+      style += "width: #{subject_width + 1}px;"
       style += "height: #{headers_height}px;"
       style += 'background: #eee;'
     %>
     <%= content_tag(:div, "", :style => style, :class => "gantt_hdr") %>
     <%
       style  = ""
-      style += "width: #{subject_width}px;"
+      style += "z-index: 1;"
+      style += "width: #{subject_width + 1}px;"
       style += "height: #{t_height}px;"
-      style += 'border-left: 1px solid #c0c0c0;'
       style += 'overflow: hidden;'
     %>
     <%= content_tag(:div, "", :style => style, :class => "gantt_hdr") %>
     <%= content_tag(:div, :class => "gantt_subjects") do %>
       <%= form_tag({}, :data => {:cm_url => issues_context_menu_path}) do -%>
+        <%= hidden_field_tag 'back_url', url_for(:params => request.query_parameters), :id => nil %>
         <%= @gantt.subjects.html_safe %>
       <% end %>
     <% end %>
   <% end %>
 </td>
-
+<%
+  @query.columns.each do |column|
+    next if Redmine::Helpers::Gantt::UNAVAILABLE_COLUMNS.include?(column.name)
+    column_name = column.name.to_s.tr('.', '_')
+%>
+  <td class="gantt_<%= column_name %>_column gantt_selected_column <%= 'last_gantt_selected_column' if @query.columns.last == column %>" id="<%= column_name %>">
+    <%
+      style = "position: relative;"
+      style += "height: #{t_height + 24}px;"
+    %>
+    <%= content_tag(:div, :style => style, :class => "gantt_#{column_name}_container gantt_selected_column_container") do %>
+      <%
+        style = "height: #{t_height}px;"
+        style += 'overflow: hidden;'
+      %>
+      <%= content_tag(:div, '', :style => style, :class => "gantt_hdr") %>
+      <%
+        style = "height: #{headers_height}px;"
+        style += 'background: #eee;'
+      %>
+      <%= content_tag(:div, content_tag(:p, column.caption, :class => 'gantt_hdr_selected_column_name'), :style => style, :class => "gantt_hdr") %>
+      <%= content_tag(:div, :class => "gantt_#{column_name} gantt_selected_column_content") do %>
+        <%= @gantt.selected_column_content({:column => column, :top => headers_height + 8, :zoom => zoom, :g_width => g_width}).html_safe %>
+      <% end %>
+    <% end %>
+  </td>
+<% end %>
 <td>
 <div style="position:relative;height:<%= t_height + 24 %>px;overflow:auto;" id="gantt_area">
 <%
@@ -281,10 +327,8 @@
     left = 0
     height = g_height + header_height - 1
     top = (show_day_num ? 55 : 37)
-    wday = @gantt.date_from.cwday
-    day_num = @gantt.date_from
   %>
-  <% (@gantt.date_to - @gantt.date_from + 1).to_i.times do %>
+  <% (@gantt.date_from..@gantt.date_to).each do |g_date| %>
     <%
       width =  zoom - 1
       style  = ""
@@ -294,28 +338,26 @@
       style += "height: #{height}px;"
       style += "font-size:0.7em;"
       clss = "gantt_hdr"
-      clss << " nwday" if @gantt.non_working_week_days.include?(wday)
+      clss << " nwday" if @gantt.non_working_week_days.include?(g_date.cwday) || g_date.holiday?(Setting.plugin_redmine_holidays_plugin['region'])
     %>
     <%= content_tag(:div, :style => style, :class => clss) do %>
-      <%= day_letter(wday) %>
+      <%= day_letter(g_date.cwday) %>
     <% end %>
     <%
       left = left + width + 1
-      day_num = day_num + 1
-      wday = wday + 1
-      wday = 1 if wday > 7
     %>
   <% end %>
 <% end %>
 
 <%= form_tag({}, :data => {:cm_url => issues_context_menu_path}) do -%>
+  <%= hidden_field_tag 'back_url', url_for(:params => request.query_parameters), :id => nil %>
   <%= @gantt.lines.html_safe %>
 <% end %>
 
 <% ###### Today red line (excluded from cache) ###### %>
-<% if Date.today >= @gantt.date_from and Date.today <= @gantt.date_to %>
+<% if User.current.today >= @gantt.date_from and User.current.today <= @gantt.date_to %>
   <%
-    today_left = (((Date.today - @gantt.date_from + 1) * zoom).floor() - 1).to_i
+    today_left = (((User.current.today - @gantt.date_from + 1) * zoom).floor() - 1).to_i
     style  = ""
     style += "position: absolute;"
     style += "height: #{g_height}px;"
@@ -374,10 +416,12 @@
 <%= javascript_tag do %>
   var issue_relation_type = <%= raw Redmine::Helpers::Gantt::DRAW_TYPES.to_json %>;
   $(function() {
+    disable_unavailable_columns('<%= Redmine::Helpers::Gantt::UNAVAILABLE_COLUMNS.map(&:to_s).join(',') %>'.split(','));
     drawGanttHandler();
     resizableSubjectColumn();
-    $("#draw_relations").change(drawGanttHandler);
-    $("#draw_progress_line").change(drawGanttHandler);
+    drawSelectedColumns();
+    $("#draw_relations, #draw_progress_line, #draw_selected_columns").change(drawGanttHandler);
+    $('div.gantt_subjects .expander').on('click', ganttEntryClick);
   });
   $(window).resize(function() {
     drawGanttHandler();

@@ -7,7 +7,7 @@ This is a redmine plugin that displays holiday in the calendar.
 Prerequisites
 -------------
 
-* Redmine 5.0
+* Redmine 5.1
 
 
 Installations
