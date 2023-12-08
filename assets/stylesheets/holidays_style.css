@@ -1,8 +1,8 @@
-table.cal td.odd.holiday {
-	background-color: #fff7f8;
-}
+.cal .calbody.nwday:not(.odd) { background-color: #fecece; }
+.cal .calbody .holiday_name { float: left; padding: 1px; }
 
-table.cal td.even.holiday {
-	background-color: #ff9999;
-}
+.gantt_hdr.nwday { background-color: #fedede; }
 
+@media screen and (max-width: 899px) {
+  .cal .calbody .holiday_name { float: right; padding: 1px; }
+}
